@@ -36,7 +36,7 @@ public class TaskController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getTasks(@RequestHeader("Authorization") String token,
+    public ResponseEntity<?> getTasks(@RequestHeader(value = "Authorization", required = false) String token,
                                       @RequestParam(required = false) String username) {
         User userToken = authService.getUserFromToken(token);
         if (userToken == null) {

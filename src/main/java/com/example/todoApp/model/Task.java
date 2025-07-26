@@ -21,7 +21,6 @@ public class Task {
     @Column
     private Status status;
 
-
     public enum Status {
         TODO,
         IN_PROGRESS,
@@ -32,6 +31,9 @@ public class Task {
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(long id) {
     }
 
     public String getTitle() {
