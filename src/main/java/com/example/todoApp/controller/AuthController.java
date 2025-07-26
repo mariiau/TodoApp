@@ -1,53 +1,42 @@
 package com.example.todoApp.controller;
 
-import com.example.todoApp.model.User;
-import com.example.todoApp.repository.UserRepository;
-import com.example.todoApp.service.TokenService;
+import com.example.todoApp.service.AuthService;
 import com.example.todoApp.model.LoginRequest;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
-
 @RestController
 @RequestMapping
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final TokenService tokenService;
+    private final AuthService authService;
 
-    public AuthController(UserRepository userRepository, TokenService tokenService) {
-        this.userRepository = userRepository;
-        this.tokenService = tokenService;
+    public AuthController(AuthService authService) {
+        this.authService = authService;
     }
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody LoginRequest request) {
-        if (userRepository.findByUsername(request.username).isPresent()) {
+        if (authService.usernameExists(request.getUsername())) {
             return ResponseEntity.badRequest().body("Username already exists");
         }
-        //todo when 2 users
-        User user = new User(request.username, request.password);
-        userRepository.save(user);
+        authService.register(request.getUsername(), request.getPassword());
         return ResponseEntity.ok("User registered");
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        Optional<User> optionalUser = userRepository.findByUsername(request.username);
-
-        if (optionalUser.isEmpty() || !optionalUser.get().getPassword().equals(request.password)) {
+        String token = authService.login(request.getUsername(), request.getPassword());
+        if (token == null) {
             return ResponseEntity.status(401).body("Invalid credentials");
         }
-
-        String token = tokenService.generateToken(optionalUser.get());
         return ResponseEntity.ok(token);
     }
 
     @PostMapping("/token")
     public ResponseEntity<?> verifyToken(@RequestHeader("Authorization") String token) {
-        if (tokenService.isValid(token)) {
+        if (authService.isTokenValid(token)) {
             return ResponseEntity.ok("Valid token");
         } else {
             return ResponseEntity.status(401).body("Invalid token");
