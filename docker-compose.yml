@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    networks:
+      - backend
+
+  todo-service:
+    build:
+      context: ./todo-service
+    container_name: todo-service
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:8081
+    depends_on:
+      - auth-service
+
+networks:
+  backend:
+    driver: bridge

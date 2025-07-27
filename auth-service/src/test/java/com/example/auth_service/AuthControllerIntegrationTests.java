@@ -94,7 +94,7 @@ public class AuthControllerIntegrationTests {
     @Test
     void verifyToken_invalidToken() throws Exception {
         mockMvc.perform(post("/token")
-                        .header("Authorization", "invalid token"))
+                        .header("Authorization", "Invalid token"))
                 .andExpect(status().isUnauthorized());
     }
 
