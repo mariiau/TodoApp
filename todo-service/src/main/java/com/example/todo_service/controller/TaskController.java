@@ -1,9 +1,10 @@
-package com.example.todoApp.controller;
+package com.example.todo_service.controller;
 
-import com.example.todoApp.model.Task;
-import com.example.todoApp.model.User;
-import com.example.todoApp.service.AuthService;
-import com.example.todoApp.service.TaskService;
+import com.example.todo_service.model.Task;
+import com.example.todo_service.model.User;
+import com.example.todo_service.service.AuthService;
+import com.example.todo_service.service.TaskService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,7 +17,7 @@ import java.util.Optional;
 public class TaskController {
 
     private final TaskService taskService;
-    private final AuthService authService;
+    private AuthService authService;
 
     public TaskController(TaskService taskService, AuthService authService) {
         this.taskService = taskService;
@@ -25,35 +26,36 @@ public class TaskController {
 
     @PostMapping
     public ResponseEntity<?> createTasks(@RequestHeader("Authorization") String token,
-                                        @RequestBody Task taskRequest) {
+                                         @RequestBody Task taskRequest) {
         User user = authService.getUserFromToken(token);
         if (user == null) {
-            return ResponseEntity.status(401).body("Invalid token");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
         }
 
-        Task saved = taskService.createTask(taskRequest, user);
+        Task saved = taskService.createTask(taskRequest, user.getId());
         return ResponseEntity.ok(saved);
     }
 
     @GetMapping
     public ResponseEntity<?> getTasks(@RequestHeader(value = "Authorization", required = false) String token,
                                       @RequestParam(required = false) String username) {
-        User userToken = authService.getUserFromToken(token);
-        if (userToken == null) {
-            return ResponseEntity.status(401).body("Invalid token");
-        }
-        if (username != null) {
-            Optional<User> requestedUser = authService.getUserFromUsername(username);
-
-            if (requestedUser.isEmpty()) {
-                return ResponseEntity.status(404).body("User not found");
+        if (token != null) {
+            User userToken = authService.getUserFromToken(token);
+            if (userToken == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
             }
 
-            if (!Objects.equals(userToken.getId(), requestedUser.get().getId())) {
-                return ResponseEntity.status(403).body("Token is valid but the user is trying to access data they shouldn’t");
+            if (username != null) {
+                if (!Objects.equals(userToken.getUsername(), username)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body("Token is valid but user is trying to access data they shouldn’t");
+                }
             }
+            List<Task> tasks = taskService.getTasks(userToken.getId());
+            return ResponseEntity.ok(tasks);
+        }else{
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
         }
-        List<Task> tasks = taskService.getTasks(userToken);
-        return ResponseEntity.ok(tasks);
+
     }
 }

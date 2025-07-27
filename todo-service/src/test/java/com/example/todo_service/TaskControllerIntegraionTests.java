@@ -1,27 +1,22 @@
-package com.example.todoApp;
+package com.example.todo_service;
 
-import com.example.todoApp.model.LoginRequest;
-import com.example.todoApp.model.Task;
-import com.example.todoApp.model.User;
-import com.example.todoApp.repository.TaskRepository;
-import com.example.todoApp.repository.UserRepository;
-import com.example.todoApp.service.TokenService;
+import com.example.todo_service.repository.TaskRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Map;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-
-import java.time.LocalDate;
-
-import static org.springframework.http.RequestEntity.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,50 +27,68 @@ public class TaskControllerIntegraionTests {
     private MockMvc mockMvc;
 
     @Autowired
-    private UserRepository userRepository;
-    @Autowired
     private TaskRepository taskRepository;
-    @Autowired
-    private TokenService tokenService;
 
-    private String token;
-    private User user;
+    @Value("${auth.service.url}")
+    private String authServiceUrl;
 
+    private String tokenUser1;
+    private String tokenUser2;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setup() {
         taskRepository.deleteAll();
-        userRepository.deleteAll();
 
-        user = new User("user", "password");
-        user = userRepository.save(user);
+        tokenUser1 = registerAndLogin("user1", "password1");
+        tokenUser2 = registerAndLogin("user2", "password2");
+    }
 
-        token = tokenService.generateToken(user);
+    private String registerAndLogin(String username, String password) {
+        RestTemplate restTemplate = new RestTemplate();
+        Map<String, String> userData = Map.of("username", username, "password", password);
+
+        try {
+            restTemplate.postForEntity(authServiceUrl + "/register", userData, Void.class);
+        } catch (HttpClientErrorException.BadRequest e) {
+            if (!e.getResponseBodyAsString().contains("Username already exists")) {
+                throw e;
+            }
+        }
+
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(
+                authServiceUrl + "/login", userData, String.class);
+
+        String token = loginResponse.getBody();
+        return token;
     }
 
     @Test
     void getTasks() throws Exception {
-        Task task = new Task();
-        task.setTitle("My Task");
-        task.setUser(user);
-        task.setStatus(Task.Status.TODO);
-        taskRepository.save(task);
+        Map<String, Object> task = Map.of(
+                "title", "My Task",
+                "status", "TODO"
+        );
+
+        mockMvc.perform(post("/todos")
+                        .header("Authorization", tokenUser1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(task)))
+                .andExpect(status().isOk());
 
         mockMvc.perform(get("/todos")
-                        .header("Authorization", token))
+                        .header("Authorization", tokenUser1))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].title").value("My Task"))
                 .andExpect(jsonPath("$[0].status").value("TODO"));
     }
+
+
     @Test
     void getTasks_anotherUser() throws Exception {
-        User other = new User("Max", "secret");
-        userRepository.save(other);
-
         mockMvc.perform(get("/todos")
-                        .param("username", "Max")
-                        .header("Authorization", token))
+                        .header("Authorization", tokenUser2)
+                        .param("username", "user1"))
                 .andExpect(status().isForbidden());
     }
 

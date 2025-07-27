@@ -1,4 +1,4 @@
-package com.example.todoApp.model;
+package com.example.todo_service.model;
 
 import jakarta.persistence.*;
 
@@ -14,12 +14,13 @@ public class Task {
     private String description;
     private LocalDate dueDate;
 
-    @ManyToOne(optional = false)
-    private User user;
+    @Column(nullable = false)
+    private Long userId;
 
     @Enumerated(EnumType.STRING)
     @Column
     private Status status;
+
 
     public enum Status {
         TODO,
@@ -33,7 +34,8 @@ public class Task {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getTitle() {
@@ -69,10 +71,12 @@ public class Task {
     }
 
 
-    public User getUser() {return user;}
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
 
-    public void setUser(User user) {
-        this.user = user;
+    public Long getUserId() {
+        return userId;
     }
 
 }

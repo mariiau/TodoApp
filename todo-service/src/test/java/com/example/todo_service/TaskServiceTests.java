@@ -1,12 +1,8 @@
-package com.example.todoApp;
+package com.example.todo_service;
 
-import com.example.todoApp.model.Task;
-import com.example.todoApp.model.User;
-import com.example.todoApp.repository.TaskRepository;
-import com.example.todoApp.repository.UserRepository;
-import com.example.todoApp.service.AuthService;
-import com.example.todoApp.service.TaskService;
-import com.example.todoApp.service.TokenService;
+import com.example.todo_service.model.Task;
+import com.example.todo_service.repository.TaskRepository;
+import com.example.todo_service.service.TaskService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,64 +19,60 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class TaskServiceTests {
     @Mock
-    private UserRepository userRepository;
-
-    @Mock
     private TaskRepository taskRepository;
-
-    @Mock
-    private TokenService tokenService;
-
-    @InjectMocks
-    private AuthService authService;
 
     @InjectMocks
     private TaskService taskService;
 
     @Test
     void createTodo_savesTodoWithUser() {
-        User user = new User("user", "password");
+        Long userId = 1L;
         Task task = new Task();
         task.setTitle("Test");
         task.setDescription("This is task description.");
         task.setDueDate(LocalDate.now().plusDays(5));
         task.setStatus(Task.Status.TODO);
+        task.setUserId(userId);
 
         Task savedTask = new Task();
-        savedTask.setId(1);
+        savedTask.setId(1L);
         savedTask.setTitle(task.getTitle());
         savedTask.setDescription(task.getDescription());
         savedTask.setDueDate(task.getDueDate());
         savedTask.setStatus(task.getStatus());
-        savedTask.setUser(user);
+        savedTask.setUserId(userId);
 
         when(taskRepository.save(any(Task.class))).thenReturn(savedTask);
-        Task result = taskService.createTask(task, user);
+
+        Task result = taskService.createTask(task, userId);
+
         assertNotNull(result);
-        assertEquals(user, result.getUser());
-        verify(taskRepository).save(task);
+        assertNotNull(result.getId());
+        assertEquals(userId, result.getUserId());
+        verify(taskRepository).save(any(Task.class));
     }
 
     @Test
     void getTodos_returnsAllTodosForUser() {
-        User user = new User("user", "password");
+        Long userId = 1L;
+
         Task task1 = new Task();
         task1.setTitle("Test");
         task1.setStatus(Task.Status.TODO);
-        task1.setUser(user);
+        task1.setUserId(userId);
 
         Task task2 = new Task();
         task2.setTitle("Test 2");
-        task1.setStatus(Task.Status.IN_PROGRESS);
-        task2.setUser(user);
+        task2.setStatus(Task.Status.IN_PROGRESS);
+        task2.setUserId(userId);
 
-        when(taskRepository.findAllByUser(user)).thenReturn(List.of(task1, task2));
+        when(taskRepository.findAllByUserId(userId)).thenReturn(List.of(task1, task2));
 
-        List<Task> result = taskService.getTasks(user);
+        List<Task> result = taskService.getTasks(userId);
 
         assertEquals(2, result.size());
         assertTrue(result.contains(task1));
         assertTrue(result.contains(task2));
-        verify(taskRepository).findAllByUser(user);
+        verify(taskRepository).findAllByUserId(userId);
     }
 }

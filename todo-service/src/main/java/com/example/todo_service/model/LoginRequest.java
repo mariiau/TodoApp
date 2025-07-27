@@ -1,4 +1,4 @@
-package com.example.todoApp.model;
+package com.example.todo_service.model;
 
 public class LoginRequest {
     public String username;

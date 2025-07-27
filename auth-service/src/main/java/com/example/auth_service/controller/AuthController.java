@@ -1,5 +1,6 @@
 package com.example.auth_service.controller;
 
+import com.example.auth_service.model.User;
 import com.example.auth_service.service.AuthService;
 import com.example.auth_service.model.LoginRequest;
 
@@ -37,7 +38,8 @@ public class AuthController {
     @PostMapping("/token")
     public ResponseEntity<?> verifyToken(@RequestHeader("Authorization") String token) {
         if (authService.isTokenValid(token)) {
-            return ResponseEntity.ok("Valid token");
+            User user = authService.getUserFromToken(token);
+            return ResponseEntity.ok(user);
         } else {
             return ResponseEntity.status(401).body("Invalid token");
         }

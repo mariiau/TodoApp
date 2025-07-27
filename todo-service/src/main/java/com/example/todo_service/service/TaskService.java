@@ -1,8 +1,8 @@
-package com.example.todoApp.service;
+package com.example.todo_service.service;
 
-import com.example.todoApp.model.Task;
-import com.example.todoApp.model.User;
-import com.example.todoApp.repository.TaskRepository;
+import com.example.todo_service.model.Task;
+import com.example.todo_service.model.User;
+import com.example.todo_service.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,12 +16,13 @@ public class TaskService {
         this.taskRepository = taskRepository;
     }
 
-    public Task createTask(Task task, User user) {
-        task.setUser(user);
-        return taskRepository.save(task);
+    public Task createTask(Task task, Long userId) {
+        task.setUserId(userId);
+        Task saved = taskRepository.save(task);
+        return saved;
     }
 
-    public List<Task> getTasks(User user) {
-        return taskRepository.findAllByUser(user);
+    public List<Task> getTasks(Long userId) {
+        return taskRepository.findAllByUserId(userId);
     }
 }
